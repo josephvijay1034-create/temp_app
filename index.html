@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="ta">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Firebase - Temperature & Pressure Monitor</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f9;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+    }
+    .container {
+      background: #ffffff;
+      padding: 25px;
+      border-radius: 10px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      width: 350px;
+      text-align: center;
+    }
+    .input-group {
+      margin: 15px 0;
+      text-align: left;
+    }
+    label {
+      font-weight: bold;
+      font-size: 14px;
+      color: #333;
+    }
+    input {
+      width: 100%;
+      padding: 10px;
+      margin-top: 5px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      box-sizing: border-box;
+    }
+    button {
+      background-color: #0288d1;
+      color: white;
+      border: none;
+      padding: 12px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 16px;
+      width: 100%;
+      margin-top: 10px;
+    }
+    button:hover {
+      background-color: #01579b;
+    }
+    .card {
+      background: #e1f5fe;
+      padding: 12px;
+      border-radius: 8px;
+      margin-top: 15px;
+      font-weight: bold;
+      color: #0277bd;
+    }
+    #status {
+      margin-top: 15px;
+      font-size: 14px;
+      color: #555;
+      word-break: break-word;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <h2>Sensor Data Monitor</h2>
+    
+    <div class="input-group">
+      <label for="tempInput">Temperature (°C):</label>
+      <input type="number" id="tempInput" step="0.1" placeholder="e.g. 28.5" />
+    </div>
+
+    <div class="input-group">
+      <label for="pressInput">Pressure (hPa):</label>
+      <input type="number" id="pressInput" step="0.1" placeholder="e.g. 1013.25" />
+    </div>
+
+    <button onclick="sendSensorData()">Send to Firebase</button>
+
+    <div class="card">
+      <div>Live Temperature: <span id="liveTemp">--</span> °C</div>
+      <div style="margin-top: 5px;">Live Pressure: <span id="livePress">--</span> hPa</div>
+    </div>
+
+    <div id="status">Connecting to Firebase...</div>
+  </div>
+
+  <!-- Firebase Modular SDK Script Integration -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+    // Firebase Config
+    const firebaseConfig = {
+      apiKey: "AIzaSyCIUPy_kDhs0Qv8dHdz42REsLjGqUJbM04",
+      authDomain: "iot-with-c-program-8460e.firebaseapp.com",
+      databaseURL: "https://iot-with-c-program-8460e-default-rtdb.firebaseio.com",
+      projectId: "iot-with-c-program-8460e",
+      storageBucket: "iot-with-c-program-8460e.firebasestorage.app",
+      messagingSenderId: "817173468979",
+      appId: "1:817173468979:web:dc315685ba87884fa09046",
+      measurementId: "G-W2XEJ1HW0V"
+    };
+
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    const statusDiv = document.getElementById("status");
+    const liveTemp = document.getElementById("liveTemp");
+    const livePress = document.getElementById("livePress");
+
+    // Realtime Database Reference ('sensorReadings' path)
+    const sensorRef = ref(db, 'sensorReadings');
+
+    // Realtime-a Database-il irundhu data vaangura listener
+    onValue(sensorRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        liveTemp.innerText = data.temperature !== undefined ? data.temperature : "--";
+        livePress.innerText = data.pressure !== undefined ? data.pressure : "--";
+        statusDiv.innerText = "Last updated: " + new Date(data.timestamp).toLocaleTimeString();
+      } else {
+        statusDiv.innerText = "No sensor data found in Database.";
+      }
+    }, (error) => {
+      statusDiv.innerText = "Error: " + error.message;
+    });
+
+    // Button Click pannumbo Data Send panra Function
+    window.sendSensorData = function() {
+      const tempVal = parseFloat(document.getElementById("tempInput").value);
+      const pressVal = parseFloat(document.getElementById("pressInput").value);
+
+      if (isNaN(tempVal) || isNaN(pressVal)) {
+        alert("Temperature matrum Pressure irandaiyum sariyaaga enter seyyavum!");
+        return;
+      }
+
+      // Firebase Realtime DB-il save seiyya
+      set(ref(db, 'sensorReadings'), {
+        temperature: tempVal,
+        pressure: pressVal,
+        timestamp: new Date().toISOString()
+      })
+      .then(() => {
+        alert("Temperature & Pressure successfully sent!");
+        document.getElementById("tempInput").value = "";
+        document.getElementById("pressInput").value = "";
+      })
+      .catch((error) => {
+        alert("Failed to send data: " + error.message);
+      });
+    };
+  </script>
+
+</body>
+</html>
